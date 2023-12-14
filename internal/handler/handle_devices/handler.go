@@ -37,48 +37,35 @@ func (h *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	defer conn.Close() // ignore possible closing errors
-
-	// var clientID string
 	params := request.URL.Query()
 	deviceID := params.Get("device_id")
 
 	id, err := uuid.Parse(deviceID)
 	if err != nil {
 		h.logger.Error("device_id is not UUID", err)
+		return
 	}
 
-	device := &device.Device{ID: id, Conn: conn, Logger: h.logger}
-
-	// if deviceID != "" {
-	// 	clientID = deviceID
-	// } else {
-	// 	clientID = "broadcast"
-	// }
+	device := device.New(id, conn, h.logger)
 
 	h.storage.Store(device)
+	defer func(id uuid.UUID) {
+		h.logger.Debug("disconnecting with device id=", id)
+		h.storage.Delete(device.Id)
+		conn.Close()
+	}(id)
 
-	defer func() {
-		h.storage.Delete(device.ID) // todo try to disconnect
-	}()
+	h.logger.Debug("opened connection with device id=", device.Id)
 
+	// no need in `select` or additional quit channel here: conn.Close() made elsewhere also terminates conn.ReadMessage()
 	for {
-		// TODO exit
 		_, _, err := conn.ReadMessage()
-		// var msg message.Message
-		// err := conn.ReadJSON(&msg)
 		if err != nil {
-			h.logger.Warn("client disconnected, id=%v", err)
+			h.logger.Warn("client disconnected, id=", err)
 			break
 		}
-
-		// if msg.DeviceID == "" {
-		// 	broadcastMessage(msg)
-		// } else {
-		// 	sendMessageToClient(msg.DeviceID, msg)
-		// }
-		time.Sleep(time.Second)
-		h.logger.Debug("listening, number of clients: ", h.storage.Count())
 	}
 
+	time.Sleep(time.Second)
+	h.logger.Debug("listening, number of clients: ", h.storage.Count())
 }

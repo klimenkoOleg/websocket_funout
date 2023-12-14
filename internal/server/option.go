@@ -44,3 +44,7 @@ func WithLogger(logger Logger) Option {
 func WithPort(port int) Option {
 	return func(o *options) { o.port = port }
 }
+
+func WithOnShutdown(f func()) Option {
+	return func(o *options) { o.server = append(o.server, func(s *http.Server) { s.RegisterOnShutdown(f) }) }
+}

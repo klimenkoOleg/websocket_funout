@@ -32,13 +32,6 @@ func New(opts ...Option) *HTTPListener {
 
 func (s *HTTPListener) Listen(ctx context.Context, handler http.Handler) error {
 
-	// for _, mw := range s.mw {
-	// 	handler = mw(handler)
-	// }
-
-	// handler = tracingMW(handler)
-	// handler = panicMW(s.logger, s.metrics, handler)
-
 	server := &http.Server{
 		Addr:           ":" + strconv.Itoa(s.port),
 		Handler:        handler,

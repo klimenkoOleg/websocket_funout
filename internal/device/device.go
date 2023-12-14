@@ -9,24 +9,36 @@ import (
 	"github.com/klimenkoOleg/websocket_funout/internal/message"
 )
 
-type Device struct {
-	ID     uuid.UUID
-	Conn   *websocket.Conn
-	Logger Logger
+func New(
+	id uuid.UUID,
+	conn *websocket.Conn,
+	logger Logger,
+) *Device {
+	return &Device{Id: id, conn: conn, logger: logger}
 }
 
-func (d *Device) Send(msg message.Message) error {
-	// clientsMux.Lock()
-	// defer clientsMux.Unlock()
+type Device struct {
+	Id     uuid.UUID
+	conn   *websocket.Conn
+	logger Logger
+}
 
-	// if client, ok := clients[deviceID]; ok {
-	err := d.Conn.WriteJSON(msg)
+// Disconnect  Closes connection, flushed buffers
+func (d *Device) Disconnect() {
+	err := d.conn.Close()
+	d.logger.Debug("closed devices connection #", d.Id)
+	// we're exiting, so aren't caring about sending errors up, just logging it
 	if err != nil {
+		d.logger.Warn("error closing device connection: ", err)
+	}
+}
+
+// Send closes connection on failure to send.
+func (d *Device) Send(msg message.Message) error {
+	err := d.conn.WriteJSON(msg)
+	if err != nil {
+		d.Disconnect()
 		return fmt.Errorf("Connection error: %w", err)
 	}
-	// } else {
-	// 	log.Printf("Client with device ID %s not found\n", deviceID)
-	// }
-
 	return nil
 }
