@@ -2,6 +2,7 @@
 
 One need to have Docker installer.
 
+![architecture](./docs/architecture.png)
 
 # Startup instructions:
 
