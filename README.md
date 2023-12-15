@@ -1,7 +1,13 @@
+# Description
+
+A simple implementation of a concurrent broadcast server that dispatches a message to the connected clients via the websocket protocol.
+ALso, the server has HTTP endpoint to receive a message and sends it out to all  (or selected) clients.
+
 # Prerequisites:
 
 One need to have Docker installer.
 
+# Architecture 
 ![architecture](./docs/architecture.png)
 
 # Startup instructions:
