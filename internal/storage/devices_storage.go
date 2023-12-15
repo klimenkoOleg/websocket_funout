@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/klimenkoOleg/websocket_funout/internal/device"
-	"github.com/klimenkoOleg/websocket_funout/internal/message"
+	"github.com/klimenkoOleg/websocket_funout/internal/dto"
 )
 
 type DeviceStorage struct {
@@ -17,7 +17,7 @@ type DeviceStorage struct {
 	// deregister chan *device.Device
 	// quit       chan struct{}
 	devicesMux sync.Mutex
-	dispatch   chan message.Message
+	dispatch   chan dto.Message
 	logger     Logger
 
 	// func NewHub(ch chan counter, quit chan struct{}) *hub {
@@ -32,7 +32,7 @@ type DeviceStorage struct {
 // }
 // }
 
-func New(dispatch chan message.Message, logger Logger) *DeviceStorage {
+func New(dispatch chan dto.Message, logger Logger) *DeviceStorage {
 	deviceStorage := &DeviceStorage{
 		devices: make(map[uuid.UUID]*device.Device),
 		// register:   make(chan *device.Device),
@@ -75,14 +75,14 @@ func (ds *DeviceStorage) Start(ctx context.Context) {
 				return
 			case msg := <-ds.dispatch:
 				if msg.DeviceID == nil {
-					ds.logger.Debug(fmt.Sprintf("broadcast message: %+v", msg))
+					ds.logger.Debug(fmt.Sprintf("broadcast dto: %+v", msg))
 					ds.broadcast(msg)
 				} else {
-					ds.logger.Debug(fmt.Sprintf("sending to one device, message: %+v", msg))
+					ds.logger.Debug(fmt.Sprintf("sending to one device, dto: %+v", msg))
 					ds.sendToDevice(*msg.DeviceID, msg)
 				}
 				// for _, d := range ds.devices {
-				// 	d.send(message)
+				// 	d.send(dto)
 				// }
 				// case device := <-ds.register:
 				// 	ds.Store(device)
@@ -101,7 +101,7 @@ func (ds *DeviceStorage) closeDevicesConnections() {
 }
 
 // todo send the func, not hardcode
-func (ds *DeviceStorage) broadcast(msg message.Message) {
+func (ds *DeviceStorage) broadcast(msg dto.Message) {
 	// This is a place for performance improvement: run Send in a goroutine for each device.
 	// But I prefer not to do premature optimization.
 	for _, d := range ds.devices {
@@ -113,7 +113,7 @@ func (ds *DeviceStorage) broadcast(msg message.Message) {
 	}
 }
 
-func (ds *DeviceStorage) sendToDevice(deviceId uuid.UUID, msg message.Message) {
+func (ds *DeviceStorage) sendToDevice(deviceId uuid.UUID, msg dto.Message) {
 	device, ok := ds.devices[deviceId]
 	if !ok {
 		ds.logger.Warn("device not found by deviceId: ", deviceId)

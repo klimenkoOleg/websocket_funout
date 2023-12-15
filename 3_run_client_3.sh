@@ -1,0 +1,1 @@
+docker run -it --net=host mtilson/websocat --exit-on-eof "ws://localhost:9999/ws?device_id=00000000-0000-1111-2222-334455667783"

@@ -1,0 +1,1 @@
+docker run --net=host -e SERVICE_PORT=9999 'websocket_funout'

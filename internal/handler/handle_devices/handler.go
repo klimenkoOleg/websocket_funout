@@ -2,12 +2,12 @@ package handle_devices
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 
 	"github.com/klimenkoOleg/websocket_funout/internal/device"
+	"github.com/klimenkoOleg/websocket_funout/internal/dto"
 	"github.com/klimenkoOleg/websocket_funout/internal/storage"
 )
 
@@ -46,6 +46,13 @@ func (h *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
+	if h.storage.IsDeviceRegistered(id) {
+		h.logger.Debug("attempt to register duplicated device_id=", id)
+		conn.WriteJSON(dto.Error{400, "the device with such device_id is already registered"})
+		conn.Close()
+		return
+	}
+
 	device := device.New(id, conn, h.logger)
 
 	h.storage.Store(device)
@@ -64,8 +71,6 @@ func (h *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 			h.logger.Warn("client disconnected, id=", err)
 			break
 		}
+		h.logger.Debug("listening, number of clients: ", h.storage.Count())
 	}
-
-	time.Sleep(time.Second)
-	h.logger.Debug("listening, number of clients: ", h.storage.Count())
 }

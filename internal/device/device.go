@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 
-	"github.com/klimenkoOleg/websocket_funout/internal/message"
+	"github.com/klimenkoOleg/websocket_funout/internal/dto"
 )
 
 func New(
@@ -34,7 +34,7 @@ func (d *Device) Disconnect() {
 }
 
 // Send closes connection on failure to send.
-func (d *Device) Send(msg message.Message) error {
+func (d *Device) Send(msg dto.Message) error {
 	err := d.conn.WriteJSON(msg)
 	if err != nil {
 		d.Disconnect()

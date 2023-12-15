@@ -8,10 +8,10 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/klimenkoOleg/websocket_funout/internal/dto"
 	"github.com/klimenkoOleg/websocket_funout/internal/handler/handle_devices"
 	"github.com/klimenkoOleg/websocket_funout/internal/handler/send_message"
 	"github.com/klimenkoOleg/websocket_funout/internal/infra/logger"
-	"github.com/klimenkoOleg/websocket_funout/internal/message"
 	"github.com/klimenkoOleg/websocket_funout/internal/server"
 	"github.com/klimenkoOleg/websocket_funout/internal/storage"
 )
@@ -38,7 +38,7 @@ func main() {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	defer cancelFunc()
 
-	dispatch := make(chan message.Message)
+	dispatch := make(chan dto.Message)
 
 	deviceStorage := storage.New(dispatch, logger)
 
