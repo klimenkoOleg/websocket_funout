@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/google/uuid"
 
@@ -16,6 +17,7 @@ type DeviceStorage struct {
 	delete   chan uuid.UUID
 	dispatch chan dto.Message
 	logger   Logger
+	mu       sync.Mutex
 }
 
 func New(dispatch chan dto.Message, logger Logger) *DeviceStorage {
@@ -68,8 +70,10 @@ func (ds *DeviceStorage) Start(ctx context.Context) {
 					ds.sendToDevice(*msg.DeviceID, msg)
 				}
 			case device := <-ds.store:
+				// no need to sync.Mutex.Lock()/Unlock - this is single thread changing the map, and select processes only on
 				ds.devices[device.Id] = device
 			case deviceId := <-ds.delete:
+				// no need to sync.Mutex.Lock()/Unlock - this is single thread changing the map
 				delete(ds.devices, deviceId)
 			}
 		}
