@@ -89,5 +89,3 @@ func (ds *DeviceStorage) Start(ctx context.Context) {
 ```
 
 2. Please do not pay much attention to `server` [listener.go](internal%2Fserver%2Flistener.go), it's quite complex implementation from my latest experience.
-
-3. 
