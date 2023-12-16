@@ -4,40 +4,34 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/gorilla/websocket"
 
 	"github.com/klimenkoOleg/websocket_funout/internal/dto"
 )
 
 func New(
 	id uuid.UUID,
-	conn *websocket.Conn,
-	logger Logger,
+	conn Connector,
 ) *Device {
-	return &Device{Id: id, conn: conn, logger: logger}
+	return &Device{Id: id, conn: conn}
 }
 
 type Device struct {
-	Id     uuid.UUID
-	conn   *websocket.Conn
-	logger Logger
+	Id   uuid.UUID
+	conn Connector
 }
 
 // Disconnect  Closes connection, flushed buffers
-func (d *Device) Disconnect() {
-	err := d.conn.Close()
-	d.logger.Debug("closed devices connection #", d.Id)
-	// we're exiting, so aren't caring about sending errors up, just logging it
-	if err != nil {
-		d.logger.Warn("error closing device connection: ", err)
-	}
+func (d *Device) Disconnect() error {
+	return d.conn.Close()
 }
 
 // Send closes connection on failure to send.
 func (d *Device) Send(msg dto.Message) error {
 	err := d.conn.WriteJSON(msg)
 	if err != nil {
-		d.Disconnect()
+		if disconnectErr := d.Disconnect(); disconnectErr != nil {
+			err = fmt.Errorf("error closing device connection: %w", disconnectErr)
+		}
 		return fmt.Errorf("Connection error: %w", err)
 	}
 	return nil

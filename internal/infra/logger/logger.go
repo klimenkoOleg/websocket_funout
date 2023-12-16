@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"log"
 	"os"
 
 	"go.uber.org/zap"
@@ -37,10 +36,4 @@ func NewDefaultLogger() *zap.Logger {
 		zapcore.AddSync(os.Stdout),
 		zap.NewAtomicLevelAt(zapcore.DebugLevel),
 	), zap.AddCaller(), zap.AddCallerSkip(1))
-}
-
-func FailIfErr(err error, msg string) {
-	if err != nil {
-		log.Fatal(msg, zap.Error(err))
-	}
 }

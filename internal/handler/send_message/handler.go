@@ -7,16 +7,15 @@ import (
 	"net/http"
 
 	"github.com/klimenkoOleg/websocket_funout/internal/dto"
-	"github.com/klimenkoOleg/websocket_funout/internal/storage"
 )
 
 type Handler struct {
-	storage  *storage.DeviceStorage
+	storage  Storage
 	dispatch chan dto.Message
 	logger   Logger
 }
 
-func New(storage *storage.DeviceStorage, dispatcher chan dto.Message, logger Logger) *Handler {
+func New(storage Storage, dispatcher chan dto.Message, logger Logger) *Handler {
 	return &Handler{
 		storage:  storage,
 		dispatch: dispatcher,

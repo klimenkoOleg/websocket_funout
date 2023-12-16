@@ -3,7 +3,6 @@ package storage
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	"github.com/google/uuid"
 
@@ -12,34 +11,20 @@ import (
 )
 
 type DeviceStorage struct {
-	devices map[uuid.UUID]*device.Device
-	// register   chan *device.Device
-	// deregister chan *device.Device
-	// quit       chan struct{}
-	devicesMux sync.Mutex
-	dispatch   chan dto.Message
-	logger     Logger
-
-	// func NewHub(ch chan counter, quit chan struct{}) *hub {
-	// return &hub{
-	// clients:    make(map[int]*client),
-	// register:   make(chan *client),
-	// deregister: make(chan *client),
-	// quit:       quit,
-	// dispatch:   ch,
+	devices  map[uuid.UUID]*device.Device
+	store    chan *device.Device
+	delete   chan uuid.UUID
+	dispatch chan dto.Message
+	logger   Logger
 }
-
-// }
-// }
 
 func New(dispatch chan dto.Message, logger Logger) *DeviceStorage {
 	deviceStorage := &DeviceStorage{
-		devices: make(map[uuid.UUID]*device.Device),
-		// register:   make(chan *device.Device),
-		// deregister: make(chan *device.Device),
+		devices:  make(map[uuid.UUID]*device.Device),
+		store:    make(chan *device.Device),
+		delete:   make(chan uuid.UUID),
 		dispatch: dispatch,
-		// quit:       quit,
-		logger: logger,
+		logger:   logger,
 	}
 
 	return deviceStorage
@@ -63,15 +48,16 @@ func (ds *DeviceStorage) Start(ctx context.Context) {
 	func() {
 		for {
 			select {
-			// case <-ds.quit:
-			// 	ds.logger.Println("quitting...")
-			// 	return
 			case <-ctx.Done():
 				ds.logger.Debug("shutting down storage... # of devices+", len(ds.devices))
+
 				for _, d := range ds.devices {
-					d.Disconnect()
+					ds.logger.Debug("closed devices connection #", d.Id)
+
+					if err := d.Disconnect(); err != nil {
+						ds.logger.Warn("error closing device connection: ", err)
+					}
 				}
-				// ds.closeDevicesConnections()
 				return
 			case msg := <-ds.dispatch:
 				if msg.DeviceID == nil {
@@ -81,13 +67,10 @@ func (ds *DeviceStorage) Start(ctx context.Context) {
 					ds.logger.Debug(fmt.Sprintf("sending to one device, dto: %+v", msg))
 					ds.sendToDevice(*msg.DeviceID, msg)
 				}
-				// for _, d := range ds.devices {
-				// 	d.send(dto)
-				// }
-				// case device := <-ds.register:
-				// 	ds.Store(device)
-				// case device := <-ds.deregister:
-				// 	ds.Delete(device.id)
+			case device := <-ds.store:
+				ds.devices[device.Id] = device
+			case deviceId := <-ds.delete:
+				delete(ds.devices, deviceId)
 			}
 		}
 	}()
@@ -95,12 +78,16 @@ func (ds *DeviceStorage) Start(ctx context.Context) {
 
 func (ds *DeviceStorage) closeDevicesConnections() {
 	ds.logger.Debug("closeDevicesConnections, # of devices: ", len(ds.devices))
+
 	for _, d := range ds.devices {
-		d.Disconnect()
+		ds.logger.Debug("closed devices connection #", d.Id)
+
+		if err := d.Disconnect(); err != nil {
+			ds.logger.Warn("error closing device connection: ", err)
+		}
 	}
 }
 
-// todo send the func, not hardcode
 func (ds *DeviceStorage) broadcast(msg dto.Message) {
 	// This is a place for performance improvement: run Send in a goroutine for each device.
 	// But I prefer not to do premature optimization.
@@ -119,25 +106,18 @@ func (ds *DeviceStorage) sendToDevice(deviceId uuid.UUID, msg dto.Message) {
 		ds.logger.Warn("device not found by deviceId: ", deviceId)
 		return
 	}
-	// this is a place for performance improvement: run Send in a goroutine for each device
 	err := device.Send(msg)
 	if err != nil {
 		delete(ds.devices, device.Id)
 	}
 }
 
-// Performance hint: mutex could be replaced by a Goroutine but I'd love to aboit premature optimization.
 func (ds *DeviceStorage) Store(d *device.Device) {
 	ds.logger.Debug("adding device #", d.Id)
-
-	ds.devicesMux.Lock()
-	ds.devices[d.Id] = d
-	ds.devicesMux.Unlock()
+	ds.store <- d
 }
 
 func (ds *DeviceStorage) Delete(id uuid.UUID) {
 	ds.logger.Debug("deleting device #", id)
-	ds.devicesMux.Lock()
-	delete(ds.devices, id)
-	ds.devicesMux.Unlock()
+	ds.delete <- id
 }

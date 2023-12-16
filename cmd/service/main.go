@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"go.uber.org/zap"
 
 	"github.com/klimenkoOleg/websocket_funout/internal/dto"
@@ -45,10 +46,16 @@ func main() {
 	go deviceStorage.Start(ctx)
 
 	sendMessageHandler := send_message.New(deviceStorage, dispatch, logger)
-	devicesHandler := handle_devices.New(deviceStorage, logger)
+	devicesHandler := handle_devices.New(deviceStorage, logger, &websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	})
 
 	mux := http.DefaultServeMux
-	mux.Handle("/send", sendMessageHandler)
+	mux.HandleFunc("/send", sendMessageHandler.ServeHTTP)
 	mux.Handle("/ws", devicesHandler)
 
 	serverListener := server.New(

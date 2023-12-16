@@ -4,30 +4,23 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/gorilla/websocket"
 
 	"github.com/klimenkoOleg/websocket_funout/internal/device"
 	"github.com/klimenkoOleg/websocket_funout/internal/dto"
-	"github.com/klimenkoOleg/websocket_funout/internal/storage"
 )
 
 type Handler struct {
-	storage  *storage.DeviceStorage
-	upgrader *websocket.Upgrader
+	storage  Storage
+	upgrader Upgrader
 	logger   Logger
 }
 
-func New(storage *storage.DeviceStorage, logger Logger) *Handler {
+func New(storage Storage, logger Logger, upgrader Upgrader) *Handler {
 	return &Handler{
-		logger:  logger,
-		storage: storage,
-		upgrader: &websocket.Upgrader{
-			ReadBufferSize:  1024,
-			WriteBufferSize: 1024,
-			CheckOrigin: func(r *http.Request) bool {
-				return true
-			},
-		}}
+		logger:   logger,
+		storage:  storage,
+		upgrader: upgrader,
+	}
 }
 
 func (h *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
@@ -53,7 +46,7 @@ func (h *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	device := device.New(id, conn, h.logger)
+	device := device.New(id, conn)
 
 	h.storage.Store(device)
 	defer func(id uuid.UUID) {
