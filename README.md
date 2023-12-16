@@ -79,10 +79,10 @@ func (ds *DeviceStorage) Start(ctx context.Context) {
 					ds.sendToDevice(*msg.DeviceID, msg)
 				}
 			case device := <-ds.store:
-    			// no need to sync.Mutex.Lock()/Unlock - this is single thread changing the map, and select processes only on
+    			    // no need to sync.Mutex.Lock()/Unlock - this is single thread changing the map, and select processes only on
 			    ds.devices[device.Id] = device
 			case deviceId := <-ds.delete:
-    			// no need to sync.Mutex.Lock()/Unlock - this is single thread changing the map, and select processes only on
+    			    // no need to sync.Mutex.Lock()/Unlock - this is single thread changing the map, and select processes only on
 			    delete(ds.devices, deviceId)
 			}
 		}
