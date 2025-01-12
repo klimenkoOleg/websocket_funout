@@ -53,7 +53,7 @@ sh 4_test_http_2.sh
 
 # Explanations:
 
-1. Main processing code is located in file [devices_storage.go](internal%2Fstorage%2Fdevices_storage.go), more precosely, in the source code:
+1. Main processing code is located in file [devices_storage.go](internal%2Fstorage%2Fdevices_storage.go), more precisely, in the source code:
 ```go
 func (ds *DeviceStorage) Start(ctx context.Context) {
 	func() {
